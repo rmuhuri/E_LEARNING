@@ -1,7 +1,91 @@
 _schema-version: 3.3.0
 ID: E_LEARNING
+description: A simple CAP project.
 version: 1.0.0
-description: "A simple CAP project."
+modules:
+  - name: E_LEARNING-srv
+    type: nodejs
+    path: gen/srv
+    requires:
+      - name: E_LEARNING-db
+      - name: uaa_E_LEARNING
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    parameters:
+      buildpack: nodejs_buildpack
+      instances: 1
+    build-parameters:
+      builder: npm-ci
+  - name: E_LEARNING-db-deployer
+    type: hdb
+    path: db
+    requires:
+      - name: E_LEARNING-db
+    parameters:
+      buildpack: nodejs_buildpack
+  - name: E_LEARNING-destination-content
+    type: com.sap.application.content
+    requires:
+      - name: E_LEARNING-destination-service
+        parameters:
+          content-target: true
+      - name: E_LEARNING_html_repo_host
+        parameters:
+          service-key:
+            name: E_LEARNING_html_repo_host-key
+      - name: uaa_E_LEARNING
+        parameters:
+          service-key:
+            name: uaa_E_LEARNING-key
+    parameters:
+      content:
+        instance:
+          destinations:
+            - Name: ManagedAppRouter_E_LEARNING_html_repo_host
+              ServiceInstanceName: E_LEARNING-html5-app-host-service
+              ServiceKeyName: E_LEARNING_html_repo_host-key
+              sap.cloud.service: ManagedAppRouter
+            - Authentication: OAuth2UserTokenExchange
+              Name: ManagedAppRouter_uaa_E_LEARNING
+              ServiceInstanceName: E_LEARNING-xsuaa-service
+              ServiceKeyName: uaa_E_LEARNING-key
+              sap.cloud.service: ManagedAppRouter
+          existing_destinations_policy: ignore
+    build-parameters:
+      no-source: true
+resources:
+  - name: E_LEARNING-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: E_LEARNING-destination-service
+    type: org.cloudfoundry.managed-service
+    parameters:
+      config:
+        HTML5Runtime_enabled: true
+        version: 1.0.0
+      service: destination
+      service-name: E_LEARNING-destination-service
+      service-plan: lite
+  - name: E_LEARNING_html_repo_host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-name: E_LEARNING-html5-app-host-service
+      service-plan: app-host
+  - name: uaa_E_LEARNING
+    type: org.cloudfoundry.managed-service
+    parameters:
+      path: ./xs-security.json
+      service: xsuaa
+      service-name: E_LEARNING-xsuaa-service
+      service-plan: application
+      config:
+        xsappname: E_LEARNING-${org}-${space}
+        tenant-mode: dedicated
 parameters:
   enable-parallel-deployments: true
 build-parameters:
@@ -10,33 +94,3 @@ build-parameters:
       commands:
         - npm ci
         - npx cds build --production
-modules:
-  - name: E_LEARNING-srv
-    type: nodejs
-    path: gen/srv
-    parameters:
-      instances: 1
-      buildpack: nodejs_buildpack
-    build-parameters:
-      builder: npm-ci
-    provides:
-      - name: srv-api # required by consumers of CAP services (e.g. approuter)
-        properties:
-          srv-url: ${default-url}
-    requires:
-      - name: E_LEARNING-db
-
-  - name: E_LEARNING-db-deployer
-    type: hdb
-    path: db
-    parameters:
-      buildpack: nodejs_buildpack
-    requires:
-      - name: E_LEARNING-db
-
-resources:
-  - name: E_LEARNING-db
-    type: com.sap.xs.hdi-container
-    parameters:
-      service: hana
-      service-plan: hdi-shared

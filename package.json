@@ -9,7 +9,8 @@
     "@cap-js/hana": "^1",
     "@sap/cds": "^8",
     "@sap/hdi-deploy": "^5.4.2",
-    "express": "^4"
+    "express": "^4",
+    "@sap/xssec": "^4"
   },
   "devDependencies": {
     "@cap-js/cds-types": "^0.10.0",
@@ -34,7 +35,8 @@
     "requires": {
       "db": {
         "kind": "hana-cloud"
-      }
+      },
+      "auth": "xsuaa"
     }
   }
 }
